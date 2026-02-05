@@ -153,6 +153,95 @@ server <- function(input, output, session) {
     ggplotly(p, tooltip = c("x", "y"))
   })
 
+  # ---- Capabilities (Epoch ECI) ----
+  capability_data <- reactive({
+    req(nrow(eci_yearly) > 0)
+
+    ai_by_year <- companies %>%
+      filter(!is.na(batch_year)) %>%
+      group_by(batch_year) %>%
+      summarise(total = n(), ai = sum(has_ai), ai_share = ai / total, .groups = "drop") %>%
+      rename(year = batch_year)
+
+    cap <- eci_yearly %>%
+      rename(year = release_year)
+
+    combined <- ai_by_year %>%
+      inner_join(cap, by = "year") %>%
+      arrange(year)
+
+    combined <- combined %>%
+      filter(year >= input$cap_year_range[1] & year <= input$cap_year_range[2])
+
+    combined$eci_metric <- switch(
+      input$cap_metric,
+      frontier = combined$eci_frontier,
+      frontier_cum = combined$eci_frontier_cum,
+      median = combined$eci_median,
+      mean = combined$eci_mean,
+      combined$eci_frontier_cum
+    )
+
+    combined
+  })
+
+  output$capability_trend_plot <- renderPlotly({
+    df <- capability_data()
+    validate(need(nrow(df) > 1, "Not enough overlapping years for capability data."))
+
+    eci_max <- max(df$eci_metric, na.rm = TRUE)
+    ai_max <- max(df$ai_share, na.rm = TRUE)
+    validate(need(is.finite(eci_max) && eci_max > 0 && is.finite(ai_max), "Capability data unavailable."))
+
+    scale_factor <- ai_max / eci_max
+    df <- df %>% mutate(eci_scaled = eci_metric * scale_factor)
+
+    p <- ggplot(df, aes(x = year)) +
+      geom_line(aes(y = ai_share, color = "YC AI share",
+                    text = paste0("Year: ", year, "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
+                linewidth = 1.1) +
+      geom_point(aes(y = ai_share, color = "YC AI share",
+                     text = paste0("Year: ", year, "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
+                 size = 2) +
+      geom_line(aes(y = eci_scaled, color = "Epoch ECI",
+                    text = paste0("Year: ", year, "<br>ECI: ", round(eci_metric, 1))),
+                linewidth = 1.1) +
+      geom_point(aes(y = eci_scaled, color = "Epoch ECI",
+                     text = paste0("Year: ", year, "<br>ECI: ", round(eci_metric, 1))),
+                 size = 2) +
+      scale_y_continuous(
+        labels = percent_format(accuracy = 1),
+        sec.axis = sec_axis(~ . / scale_factor, name = "Epoch ECI Score")
+      ) +
+      scale_x_continuous(breaks = df$year) +
+      scale_color_manual(values = c("YC AI share" = "#1C4E80", "Epoch ECI" = "#D99000")) +
+      labs(title = "YC AI Share vs Frontier AI Capability", x = "Year", y = "% YC Companies (AI)", color = "") +
+      theme_minimal(base_size = 12)
+
+    ggplotly(p, tooltip = "text")
+  })
+
+  output$capability_scatter_plot <- renderPlotly({
+    df <- capability_data()
+    validate(need(nrow(df) > 1, "Not enough overlapping years for capability data."))
+
+    cor_val <- suppressWarnings(cor(df$eci_metric, df$ai_share, use = "complete.obs"))
+    subtitle <- ifelse(is.finite(cor_val), paste0("Pearson r = ", round(cor_val, 2)), "Pearson r = NA")
+
+    p <- ggplot(df, aes(x = eci_metric, y = ai_share)) +
+      geom_point(aes(text = paste0("Year: ", year,
+                                   "<br>ECI: ", round(eci_metric, 1),
+                                   "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
+                 color = "#1C4E80", size = 3, alpha = 0.9) +
+      geom_smooth(method = "lm", se = FALSE, color = "#D99000", linewidth = 1) +
+      scale_y_continuous(labels = percent_format(accuracy = 1)) +
+      labs(title = "AI Share vs Capability (by Year)", subtitle = subtitle,
+           x = "Epoch ECI (selected metric)", y = "% YC Companies (AI)") +
+      theme_minimal(base_size = 12)
+
+    ggplotly(p, tooltip = "text")
+  })
+
   output$company_table <- renderDT({
     display <- companies %>%
       select(name, batch, status, is_hiring, team_size, tags, industries, regions, one_liner, url, website, ai_tags)

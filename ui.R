@@ -99,6 +99,38 @@ ui <- navbarPage(
     )
   ),
   tabPanel(
+    "Capabilities",
+    fluidPage(
+      sidebarLayout(
+        sidebarPanel(
+          width = 3,
+          sliderInput("cap_year_range", "Year Range",
+                      min = cap_year_min,
+                      max = cap_year_max,
+                      value = c(cap_year_min, cap_year_max),
+                      sep = ""),
+          selectInput("cap_metric", "Capability Metric (Epoch ECI)",
+                      choices = capability_metric_choices,
+                      selected = "frontier_cum"),
+          helpText(paste0("ECI = Epoch Capabilities Index. Years reflect model release dates. Coverage starts ", cap_year_min, "."))
+        ),
+        mainPanel(
+          width = 9,
+          div(class = "card",
+              h4("YC AI Share vs AI Capability"),
+              plotlyOutput("capability_trend_plot", height = 360),
+              p(class = "muted", "ECI line is scaled to the share axis; right axis shows actual ECI values.")
+          ),
+          br(),
+          div(class = "card",
+              h4("AI Share vs Capability (by Year)"),
+              plotlyOutput("capability_scatter_plot", height = 360)
+          )
+        )
+      )
+    )
+  ),
+  tabPanel(
     "Hiring & Status",
     fluidPage(
       sidebarLayout(
@@ -170,6 +202,9 @@ ui <- navbarPage(
       div(class = "card",
           h4("Data Source"),
           p("This project uses the yc-oss GitHub API (https://github.com/yc-oss/api) which mirrors YC's public company directory."),
+          h4("AI Capability Data"),
+          p("Capability trends use Epoch AI's Benchmarking Hub (https://epoch.ai/benchmarks) and the Epoch Capabilities Index (ECI) by model release year."),
+          p("Citation: Epoch AI, 'Data on AI Benchmarking'. Published online at epoch.ai. Retrieved from https://epoch.ai/benchmarks."),
           h4("AI Tag Definition"),
           p("AI companies are identified using YC's official AI-related tags: AI, Artificial Intelligence, Machine Learning, Deep Learning, Generative AI, AIOps, NLP, Computer Vision, Conversational AI, AI Assistant, AI-Enhanced Learning, AI-powered Drug Discovery, Swarm AI."),
           h4("Methods"),
@@ -180,7 +215,7 @@ ui <- navbarPage(
             tags$li("Status comparison: chi-square test of AI vs non-AI across status categories.")
           ),
           h4("Limitations"),
-          p("Counts by region/industry can exceed total companies because a company can appear in multiple categories. Hiring status indicates whether the YC profile marks the company as hiring, not the number or type of roles. Partial/unreleased batches (e.g., Spring/Summer 2026) are excluded.")
+          p("Counts by region/industry can exceed total companies because a company can appear in multiple categories. Hiring status indicates whether the YC profile marks the company as hiring, not the number or type of roles. Partial/unreleased batches (e.g., Spring/Summer 2026) are excluded. Epoch ECI coverage in the bundled data begins in 2023.")
       )
     )
   )
