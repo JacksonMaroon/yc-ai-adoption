@@ -232,27 +232,6 @@ server <- function(input, output, session) {
       )
   })
 
-  output$capability_scatter_plot <- renderPlotly({
-    df <- capability_data()
-    shiny::validate(shiny::need(nrow(df) > 1, "Not enough overlapping years for capability data."))
-
-    cor_val <- suppressWarnings(cor(df$metric_value, df$ai_share, use = "complete.obs"))
-    subtitle <- ifelse(is.finite(cor_val), paste0("Pearson r = ", round(cor_val, 2)), "Pearson r = NA")
-
-    p <- ggplot(df, aes(x = metric_value, y = ai_share)) +
-      geom_point(aes(text = paste0("Year: ", year,
-                                   "<br>", metric_label, ": ", round(metric_value, 2),
-                                   "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
-                 color = "#1C4E80", size = 3, alpha = 0.9) +
-      geom_smooth(method = "lm", se = FALSE, color = "#D99000", linewidth = 1) +
-      scale_y_continuous(labels = percent_format(accuracy = 1)) +
-      labs(title = "AI Share vs Capability (by Year)", subtitle = subtitle,
-           x = "Capability metric (selected)", y = "% YC Companies (AI)") +
-      theme_minimal(base_size = 12)
-
-    ggplotly(p, tooltip = "text")
-  })
-
   output$company_table <- renderDT({
     display <- companies %>%
       select(name, batch, status, is_hiring, team_size, tags, industries, regions, one_liner, url, website, ai_tags)

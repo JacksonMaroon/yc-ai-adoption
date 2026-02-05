@@ -120,11 +120,6 @@ ui <- navbarPage(
               h4("YC AI Share vs AI Capability"),
               plotlyOutput("capability_trend_plot", height = 360),
               p(class = "muted", "Right axis shows the selected capability metric; left axis shows YC AI share.")
-          ),
-          br(),
-          div(class = "card",
-              h4("AI Share vs Capability (by Year)"),
-              plotlyOutput("capability_scatter_plot", height = 360)
           )
         )
       )
