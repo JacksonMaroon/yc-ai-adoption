@@ -7,6 +7,13 @@ A Shiny dashboard that analyzes AI adoption, industry trends, hiring signals, an
 - Companies (all): https://yc-oss.github.io/api/companies/all.json
 - Metadata: https://yc-oss.github.io/api/meta.json
 
+The latest collection timestamp is stored in `data/yc_meta.json` under `last_updated`.
+
+## Code Structure
+- `global.R` — data loading and shared objects
+- `ui.R` — interface
+- `server.R` — logic and outputs
+
 ## Quick Start
 1. Install R packages:
    - `shiny`, `dplyr`, `tidyr`, `stringr`, `ggplot2`, `plotly`, `DT`, `readr`, `jsonlite`, `scales`, `bslib`
@@ -47,6 +54,13 @@ AI companies are flagged if they include any of the following YC tags:
 - AI-powered Drug Discovery
 - Swarm AI
 
+## Methods
+- **Trend test**: Linear regression of batch AI adoption rate on batch year.
+- **Industry comparison**: Chi-square test of AI vs non-AI across top industries.
+- **Hiring comparison**: Proportion test of hiring rates for AI vs non-AI companies.
+- **Status comparison**: Chi-square test of AI vs non-AI across status categories.
+
 ## Notes
 - Region and industry counts can exceed the number of companies because companies can have multiple regions/industries.
 - Hiring status is a boolean from YC company profiles, not job-level roles.
+- Partial/unreleased batches (Spring 2026 and Summer 2026) are excluded from analysis.
