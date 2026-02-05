@@ -28,15 +28,13 @@ companies <- companies %>%
     team_size = as.numeric(team_size)
   )
 
-# ---- Epoch AI Capabilities (ECI) ----
-eci_yearly <- tibble()
+# ---- Capability Metrics (Epoch ECI + METR) ----
+capability_yearly <- tibble()
 cap_year_min <- NA_integer_
 cap_year_max <- NA_integer_
 capability_metric_choices <- c(
-  "Frontier (best available to date)" = "frontier_cum",
-  "Frontier (best model of year)" = "frontier",
-  "Median model" = "median",
-  "Mean model" = "mean"
+  "Frontier (best available to date): Epoch ECI" = "eci_frontier_cum",
+  "Frontier (best available to date): METR Time Horizon" = "metr_frontier_cum"
 )
 
 eci_raw <- tryCatch(
@@ -44,6 +42,12 @@ eci_raw <- tryCatch(
   error = function(e) NULL
 )
 
+metr_raw <- tryCatch(
+  read_csv("data/metr_time_horizons_external.csv", show_col_types = FALSE),
+  error = function(e) NULL
+)
+
+eci_yearly <- tibble()
 if (!is.null(eci_raw)) {
   eci_clean <- eci_raw %>%
     mutate(
@@ -57,17 +61,42 @@ if (!is.null(eci_raw)) {
       group_by(release_year) %>%
       summarise(
         eci_frontier = max(`ECI Score`, na.rm = TRUE),
-        eci_mean = mean(`ECI Score`, na.rm = TRUE),
-        eci_median = median(`ECI Score`, na.rm = TRUE),
         eci_models = n(),
         .groups = "drop"
       ) %>%
       arrange(release_year) %>%
       mutate(eci_frontier_cum = cummax(eci_frontier))
-
-    cap_year_min <- min(eci_yearly$release_year, na.rm = TRUE)
-    cap_year_max <- max(eci_yearly$release_year, na.rm = TRUE)
   }
+}
+
+metr_yearly <- tibble()
+if (!is.null(metr_raw)) {
+  metr_clean <- metr_raw %>%
+    mutate(
+      release_date = as.Date(`Release date`),
+      release_year = as.integer(format(release_date, "%Y"))
+    ) %>%
+    filter(!is.na(release_year), !is.na(`Time horizon`))
+
+  if (nrow(metr_clean) > 0) {
+    metr_yearly <- metr_clean %>%
+      group_by(release_year) %>%
+      summarise(
+        metr_frontier = max(`Time horizon`, na.rm = TRUE),
+        metr_models = n(),
+        .groups = "drop"
+      ) %>%
+      arrange(release_year) %>%
+      mutate(metr_frontier_cum = cummax(metr_frontier))
+  }
+}
+
+if (nrow(eci_yearly) > 0 || nrow(metr_yearly) > 0) {
+  capability_yearly <- full_join(eci_yearly, metr_yearly, by = "release_year") %>%
+    arrange(release_year)
+
+  cap_year_min <- min(capability_yearly$release_year, na.rm = TRUE)
+  cap_year_max <- max(capability_yearly$release_year, na.rm = TRUE)
 }
 
 # Exclude partial/unreleased batches

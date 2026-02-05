@@ -7,6 +7,7 @@ A Shiny dashboard that analyzes AI adoption, industry trends, hiring signals, an
 - Companies (all): https://yc-oss.github.io/api/companies/all.json
 - Metadata: https://yc-oss.github.io/api/meta.json
 - Epoch AI Benchmarks (ECI): https://epoch.ai/benchmarks
+- METR Time Horizons: https://metr.org
 
 The latest collection timestamp is stored in `data/yc_meta.json` under `last_updated`.
 
@@ -60,11 +61,11 @@ AI companies are flagged if they include any of the following YC tags:
 - **Industry comparison**: Chi-square test of AI vs non-AI across top industries.
 - **Hiring comparison**: Proportion test of hiring rates for AI vs non-AI companies.
 - **Status comparison**: Chi-square test of AI vs non-AI across status categories.
-- **Capabilities overlay**: Epoch Capabilities Index (ECI) aggregated by model release year. We compare YC AI share vs ECI (frontier, cumulative frontier, median, or mean) for overlapping years.
+- **Capabilities overlay**: Epoch Capabilities Index (ECI) and METR time horizon benchmarks, aggregated by model release year. We compare YC AI share vs frontier (best available to date) capability values for overlapping years.
 
 ## Notes
 - Region and industry counts can exceed the number of companies because companies can have multiple regions/industries.
 - Hiring status is a boolean from YC company profiles, not job-level roles.
 - Partial/unreleased batches (Spring 2026 and Summer 2026) are excluded from analysis.
 - Epoch AI benchmark data is licensed under CC-BY. Please cite Epoch AI when reusing outputs.
-- ECI coverage in the bundled data begins in 2023; earlier years have limited or missing ECI scores.
+- ECI coverage in the bundled data begins in 2023; METR time horizon coverage begins in 2019.

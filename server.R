@@ -155,7 +155,7 @@ server <- function(input, output, session) {
 
   # ---- Capabilities (Epoch ECI) ----
   capability_data <- reactive({
-    req(nrow(eci_yearly) > 0)
+    req(nrow(capability_yearly) > 0)
     req(input$cap_year_range)
     req(input$cap_metric)
 
@@ -165,7 +165,7 @@ server <- function(input, output, session) {
       summarise(total = n(), ai = sum(has_ai), ai_share = ai / total, .groups = "drop") %>%
       rename(year = batch_year)
 
-    cap <- eci_yearly %>%
+    cap <- capability_yearly %>%
       rename(year = release_year)
 
     combined <- ai_by_year %>%
@@ -175,13 +175,18 @@ server <- function(input, output, session) {
     combined <- combined %>%
       filter(year >= input$cap_year_range[1] & year <= input$cap_year_range[2])
 
-    combined$eci_metric <- switch(
-      input$cap_metric,
-      frontier = combined$eci_frontier,
-      frontier_cum = combined$eci_frontier_cum,
-      median = combined$eci_median,
-      mean = combined$eci_mean,
-      combined$eci_frontier_cum
+    combined$metric_value <- dplyr::case_when(
+      input$cap_metric == "eci_frontier_cum" ~ combined$eci_frontier_cum,
+      input$cap_metric == "metr_frontier_cum" ~ combined$metr_frontier_cum,
+      TRUE ~ NA_real_
+    )
+
+    combined <- combined %>% filter(!is.na(metric_value))
+
+    combined$metric_label <- ifelse(
+      input$cap_metric == "metr_frontier_cum",
+      "METR Time Horizon",
+      "Epoch ECI"
     )
 
     combined
@@ -191,12 +196,12 @@ server <- function(input, output, session) {
     df <- capability_data()
     shiny::validate(shiny::need(nrow(df) > 1, "Not enough overlapping years for capability data."))
 
-    eci_max <- max(df$eci_metric, na.rm = TRUE)
+    eci_max <- max(df$metric_value, na.rm = TRUE)
     ai_max <- max(df$ai_share, na.rm = TRUE)
     shiny::validate(shiny::need(is.finite(eci_max) && eci_max > 0 && is.finite(ai_max), "Capability data unavailable."))
 
     scale_factor <- ai_max / eci_max
-    df <- df %>% mutate(eci_scaled = eci_metric * scale_factor)
+    df <- df %>% mutate(eci_scaled = metric_value * scale_factor)
 
     p <- ggplot(df, aes(x = year)) +
       geom_line(aes(y = ai_share, color = "YC AI share",
@@ -205,18 +210,18 @@ server <- function(input, output, session) {
       geom_point(aes(y = ai_share, color = "YC AI share",
                      text = paste0("Year: ", year, "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
                  size = 2) +
-      geom_line(aes(y = eci_scaled, color = "Epoch ECI",
-                    text = paste0("Year: ", year, "<br>ECI: ", round(eci_metric, 1))),
+      geom_line(aes(y = eci_scaled, color = "Capability",
+                    text = paste0("Year: ", year, "<br>", metric_label, ": ", round(metric_value, 2))),
                 linewidth = 1.1) +
-      geom_point(aes(y = eci_scaled, color = "Epoch ECI",
-                     text = paste0("Year: ", year, "<br>ECI: ", round(eci_metric, 1))),
+      geom_point(aes(y = eci_scaled, color = "Capability",
+                     text = paste0("Year: ", year, "<br>", metric_label, ": ", round(metric_value, 2))),
                  size = 2) +
       scale_y_continuous(
         labels = percent_format(accuracy = 1),
-        sec.axis = sec_axis(~ . / scale_factor, name = "Epoch ECI Score")
+        sec.axis = sec_axis(~ . / scale_factor, name = unique(df$metric_label))
       ) +
       scale_x_continuous(breaks = df$year) +
-      scale_color_manual(values = c("YC AI share" = "#1C4E80", "Epoch ECI" = "#D99000")) +
+      scale_color_manual(values = c("YC AI share" = "#1C4E80", "Capability" = "#D99000")) +
       labs(title = "YC AI Share vs Frontier AI Capability", x = "Year", y = "% YC Companies (AI)", color = "") +
       theme_minimal(base_size = 12)
 
@@ -227,18 +232,18 @@ server <- function(input, output, session) {
     df <- capability_data()
     shiny::validate(shiny::need(nrow(df) > 1, "Not enough overlapping years for capability data."))
 
-    cor_val <- suppressWarnings(cor(df$eci_metric, df$ai_share, use = "complete.obs"))
+    cor_val <- suppressWarnings(cor(df$metric_value, df$ai_share, use = "complete.obs"))
     subtitle <- ifelse(is.finite(cor_val), paste0("Pearson r = ", round(cor_val, 2)), "Pearson r = NA")
 
-    p <- ggplot(df, aes(x = eci_metric, y = ai_share)) +
+    p <- ggplot(df, aes(x = metric_value, y = ai_share)) +
       geom_point(aes(text = paste0("Year: ", year,
-                                   "<br>ECI: ", round(eci_metric, 1),
+                                   "<br>", metric_label, ": ", round(metric_value, 2),
                                    "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
                  color = "#1C4E80", size = 3, alpha = 0.9) +
       geom_smooth(method = "lm", se = FALSE, color = "#D99000", linewidth = 1) +
       scale_y_continuous(labels = percent_format(accuracy = 1)) +
       labs(title = "AI Share vs Capability (by Year)", subtitle = subtitle,
-           x = "Epoch ECI (selected metric)", y = "% YC Companies (AI)") +
+           x = "Capability metric (selected)", y = "% YC Companies (AI)") +
       theme_minimal(base_size = 12)
 
     ggplotly(p, tooltip = "text")
