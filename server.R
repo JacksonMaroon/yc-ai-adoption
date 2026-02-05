@@ -156,6 +156,8 @@ server <- function(input, output, session) {
   # ---- Capabilities (Epoch ECI) ----
   capability_data <- reactive({
     req(nrow(eci_yearly) > 0)
+    req(input$cap_year_range)
+    req(input$cap_metric)
 
     ai_by_year <- companies %>%
       filter(!is.na(batch_year)) %>%
