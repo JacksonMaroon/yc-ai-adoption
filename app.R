@@ -30,7 +30,7 @@ companies <- companies %>%
   )
 
 # Exclude partial/unreleased batches
-excluded_batches <- c("Spring 2026")
+excluded_batches <- c("Spring 2026", "Summer 2026")
 companies <- companies %>%
   filter(!(batch %in% excluded_batches))
 
@@ -230,7 +230,7 @@ ui <- navbarPage(
           h4("AI Tag Definition"),
           p("AI companies are identified using YC's official AI-related tags: AI, Artificial Intelligence, Machine Learning, Deep Learning, Generative AI, AIOps, NLP, Computer Vision, Conversational AI, AI Assistant, AI-Enhanced Learning, AI-powered Drug Discovery, Swarm AI."),
           h4("Limitations"),
-          p("Counts by region/industry can exceed total companies because a company can appear in multiple categories. Hiring status indicates whether the YC profile marks the company as hiring, not the number or type of roles. Partial/unreleased batches (e.g., Spring 2026) are excluded.")
+          p("Counts by region/industry can exceed total companies because a company can appear in multiple categories. Hiring status indicates whether the YC profile marks the company as hiring, not the number or type of roles. Partial/unreleased batches (e.g., Spring/Summer 2026) are excluded.")
       )
     )
   )

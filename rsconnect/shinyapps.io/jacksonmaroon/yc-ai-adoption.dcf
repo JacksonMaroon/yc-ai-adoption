@@ -5,6 +5,6 @@ account: jacksonmaroon
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 16597859
-bundleId: 11538875
+bundleId: 11538896
 url: https://jacksonmaroon.shinyapps.io/yc-ai-adoption/
 version: 1
