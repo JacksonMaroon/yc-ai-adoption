@@ -196,36 +196,40 @@ server <- function(input, output, session) {
     df <- capability_data()
     shiny::validate(shiny::need(nrow(df) > 1, "Not enough overlapping years for capability data."))
 
-    eci_max <- max(df$metric_value, na.rm = TRUE)
-    ai_max <- max(df$ai_share, na.rm = TRUE)
-    shiny::validate(shiny::need(is.finite(eci_max) && eci_max > 0 && is.finite(ai_max), "Capability data unavailable."))
+    metric_label <- unique(df$metric_label)
+    metric_label <- metric_label[!is.na(metric_label)]
+    metric_label <- if (length(metric_label) > 0) metric_label[1] else "Capability"
 
-    scale_factor <- ai_max / eci_max
-    df <- df %>% mutate(eci_scaled = metric_value * scale_factor)
+    shiny::validate(shiny::need(all(is.finite(df$ai_share)) && any(is.finite(df$metric_value)),
+                                "Capability data unavailable."))
 
-    p <- ggplot(df, aes(x = year)) +
-      geom_line(aes(y = ai_share, color = "YC AI share",
-                    text = paste0("Year: ", year, "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
-                linewidth = 1.1) +
-      geom_point(aes(y = ai_share, color = "YC AI share",
-                     text = paste0("Year: ", year, "<br>AI share: ", percent(ai_share, accuracy = 0.1))),
-                 size = 2) +
-      geom_line(aes(y = eci_scaled, color = "Capability",
-                    text = paste0("Year: ", year, "<br>", metric_label, ": ", round(metric_value, 2))),
-                linewidth = 1.1) +
-      geom_point(aes(y = eci_scaled, color = "Capability",
-                     text = paste0("Year: ", year, "<br>", metric_label, ": ", round(metric_value, 2))),
-                 size = 2) +
-      scale_y_continuous(
-        labels = percent_format(accuracy = 1),
-        sec.axis = sec_axis(~ . / scale_factor, name = unique(df$metric_label))
-      ) +
-      scale_x_continuous(breaks = df$year) +
-      scale_color_manual(values = c("YC AI share" = "#1C4E80", "Capability" = "#D99000")) +
-      labs(title = "YC AI Share vs Frontier AI Capability", x = "Year", y = "% YC Companies (AI)", color = "") +
-      theme_minimal(base_size = 12)
-
-    ggplotly(p, tooltip = "text")
+    plot_ly(df, x = ~year) %>%
+      add_trace(
+        y = ~ai_share,
+        type = "scatter",
+        mode = "lines+markers",
+        name = "YC AI share",
+        line = list(color = "#1C4E80", width = 2),
+        marker = list(color = "#1C4E80", size = 6),
+        hovertemplate = "Year: %{x}<br>AI share: %{y:.1%}<extra></extra>"
+      ) %>%
+      add_trace(
+        y = ~metric_value,
+        type = "scatter",
+        mode = "lines+markers",
+        name = metric_label,
+        yaxis = "y2",
+        line = list(color = "#D99000", width = 2),
+        marker = list(color = "#D99000", size = 6),
+        hovertemplate = paste0("Year: %{x}<br>", metric_label, ": %{y:.2f}<extra></extra>")
+      ) %>%
+      layout(
+        title = "YC AI Share vs Frontier AI Capability",
+        xaxis = list(title = "Year", tickmode = "array", tickvals = df$year),
+        yaxis = list(title = "% YC Companies (AI)", tickformat = ".0%", rangemode = "tozero"),
+        yaxis2 = list(title = metric_label, overlaying = "y", side = "right", rangemode = "tozero"),
+        legend = list(orientation = "h", x = 0, y = 1.1)
+      )
   })
 
   output$capability_scatter_plot <- renderPlotly({

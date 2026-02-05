@@ -119,7 +119,7 @@ ui <- navbarPage(
           div(class = "card",
               h4("YC AI Share vs AI Capability"),
               plotlyOutput("capability_trend_plot", height = 360),
-              p(class = "muted", "Capability line is scaled to the share axis; right axis shows actual capability values.")
+              p(class = "muted", "Right axis shows the selected capability metric; left axis shows YC AI share.")
           ),
           br(),
           div(class = "card",
