@@ -189,11 +189,11 @@ server <- function(input, output, session) {
 
   output$capability_trend_plot <- renderPlotly({
     df <- capability_data()
-    validate(need(nrow(df) > 1, "Not enough overlapping years for capability data."))
+    shiny::validate(shiny::need(nrow(df) > 1, "Not enough overlapping years for capability data."))
 
     eci_max <- max(df$eci_metric, na.rm = TRUE)
     ai_max <- max(df$ai_share, na.rm = TRUE)
-    validate(need(is.finite(eci_max) && eci_max > 0 && is.finite(ai_max), "Capability data unavailable."))
+    shiny::validate(shiny::need(is.finite(eci_max) && eci_max > 0 && is.finite(ai_max), "Capability data unavailable."))
 
     scale_factor <- ai_max / eci_max
     df <- df %>% mutate(eci_scaled = eci_metric * scale_factor)
@@ -225,7 +225,7 @@ server <- function(input, output, session) {
 
   output$capability_scatter_plot <- renderPlotly({
     df <- capability_data()
-    validate(need(nrow(df) > 1, "Not enough overlapping years for capability data."))
+    shiny::validate(shiny::need(nrow(df) > 1, "Not enough overlapping years for capability data."))
 
     cor_val <- suppressWarnings(cor(df$eci_metric, df$ai_share, use = "complete.obs"))
     subtitle <- ifelse(is.finite(cor_val), paste0("Pearson r = ", round(cor_val, 2)), "Pearson r = NA")
